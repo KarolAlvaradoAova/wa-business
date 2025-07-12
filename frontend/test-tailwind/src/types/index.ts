@@ -24,12 +24,18 @@ export interface Message {
   chatId: string;
   senderId: string;
   content: string;
-  type: 'text' | 'image' | 'document' | 'audio' | 'system';
+  type: 'text' | 'image' | 'document' | 'audio' | 'video' | 'sticker' | 'system';
   timestamp: Date;
   isRead: boolean;
   isDelivered: boolean;
   isFromBot?: boolean;
   metadata?: Record<string, any>;
+  // Media fields
+  mediaUrl?: string;
+  mediaCaption?: string;
+  mediaType?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | 'STICKER';
+  mediaSize?: number;
+  mediaFileName?: string;
 }
 
 export interface Chat {
@@ -179,6 +185,7 @@ export type ChatEvent =
 export type AppAction =
   | { type: 'SET_CURRENT_CHAT'; payload: Chat | null }
   | { type: 'ADD_MESSAGE'; payload: Message }
+  | { type: 'ADD_CHAT'; payload: Chat }
   | { type: 'UPDATE_CHAT'; payload: Chat }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }

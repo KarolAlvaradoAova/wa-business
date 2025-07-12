@@ -5,20 +5,29 @@
   "scripts": {
     "dev": "nodemon src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "webhook:check": "node src/scripts/webhook-setup.js",
+    "security:test": "node src/scripts/test-webhook-security.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@prisma/client": "^6.11.1",
+    "@types/socket.io": "^3.0.1",
+    "axios": "^1.10.0",
     "cors": "^2.8.5",
     "dotenv": "^17.1.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "multer": "^1.4.5-lts.1",
+    "prisma": "^6.11.1",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/multer": "^1.4.13",
     "@types/node": "^24.0.10",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",

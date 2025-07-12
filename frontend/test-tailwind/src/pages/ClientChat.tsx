@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useChatbot } from "../chatbot/hooks/useChatbot";
+import { MESSAGES } from "../constants/messages";
+import type { ChatbotMessage } from "../chatbot/types/chatbot";
 
 interface ChatMessage {
   id: string;
@@ -11,17 +14,27 @@ interface ChatMessage {
 
 const ClientChat: React.FC = () => {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      text: '¡Hola! 👋 Soy el asistente virtual de Embler. ¿En qué puedo ayudarte hoy?',
-      sender: 'bot',
-      timestamp: new Date(),
-    }
-  ]);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Integrar chatbot real
+  const {
+    sendMessage,
+    getConversationHistory,
+    isThinking,
+    error,
+    clientInfo,
+    collectionProgress,
+    resetConversation
+  } = useChatbot('client-simulator');
+
+  // Convertir mensajes del chatbot al formato del componente
+  const messages: ChatMessage[] = getConversationHistory().map((msg: ChatbotMessage) => ({
+    id: msg.id,
+    text: msg.content,
+    sender: msg.role === 'user' ? 'client' : 'bot',
+    timestamp: msg.timestamp
+  }));
 
   // Auto-scroll al final
   const scrollToBottom = () => {
@@ -32,70 +45,28 @@ const ClientChat: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Simular respuesta del bot
-  const simulateBotResponse = (userMessage: string) => {
-    setIsTyping(true);
-    
-    setTimeout(() => {
-      let botResponse = '';
-      
-      const lowerMessage = userMessage.toLowerCase();
-      
-      if (lowerMessage.includes('hola') || lowerMessage.includes('buenas')) {
-        botResponse = '¡Hola! 😊 Me da mucho gusto saludarte. ¿Podrías decirme tu nombre para ofrecerte una mejor atención?';
-      } else if (lowerMessage.includes('nombre') || lowerMessage.includes('llamo')) {
-        botResponse = '¡Mucho gusto! Es un placer conocerte. ¿En qué área te puedo ayudar? Puedo asistirte con:\n\n• Información sobre productos\n• Soporte técnico\n• Preguntas generales\n• Conectarte con un agente';
-      } else if (lowerMessage.includes('producto') || lowerMessage.includes('servicio')) {
-        botResponse = 'Excelente. Ofrecemos soluciones de WhatsApp Business para empresas:\n\n✅ Gestión profesional de chats\n✅ Chatbots inteligentes\n✅ API oficial de Meta\n✅ Análisis y reportes\n\n¿Te interesa alguna funcionalidad en particular?';
-      } else if (lowerMessage.includes('precio') || lowerMessage.includes('costo')) {
-        botResponse = 'Para conocer nuestros planes y precios, me gustaría conectarte con uno de nuestros especialistas. ¿Te parece bien si programo una llamada o prefieres que un agente te contacte por este medio?';
-      } else if (lowerMessage.includes('agente') || lowerMessage.includes('humano')) {
-        botResponse = 'Por supuesto, te voy a conectar con uno de nuestros agentes. Un momento por favor... 👨‍💼\n\n*Nota: En la versión completa, aquí se transferiría la conversación a un agente real.*';
-      } else if (lowerMessage.includes('adiós') || lowerMessage.includes('bye')) {
-        botResponse = '¡Gracias por contactarnos! Ha sido un placer ayudarte. Si necesitas algo más, no dudes en escribirnos. ¡Que tengas un excelente día! 👋';
-      } else {
-        botResponse = `Entiendo tu consulta sobre "${userMessage}". Para darte la mejor respuesta, ¿podrías ser un poco más específico? También puedo conectarte directamente con un agente si prefieres. 🤔`;
-      }
-      
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        text: botResponse,
-        sender: 'bot',
-        timestamp: new Date(),
-      }]);
-    }, 1500 + Math.random() * 1000); // Simular tiempo de respuesta variable
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Manejar envío de mensajes con chatbot real
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isThinking) return;
     
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      text: inputValue,
-      sender: 'client',
-      timestamp: new Date(),
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
+    const messageText = inputValue.trim();
     setInputValue('');
     
-    // Simular respuesta del bot
-    simulateBotResponse(inputValue);
+    try {
+      // Enviar mensaje al chatbot real
+      await sendMessage(messageText);
+    } catch (err) {
+      console.error('Error enviando mensaje:', err);
+    }
   };
 
   const handleQuickResponse = (text: string) => {
     setInputValue(text);
   };
 
-  const quickResponses = [
-    "¿Qué servicios ofrecen?",
-    "Necesito ayuda con WhatsApp Business",
-    "Quiero hablar con un agente",
-    "¿Cuáles son los precios?"
-  ];
+  const quickResponses = MESSAGES.CLIENT_CHAT.QUICK_RESPONSES;
 
   return (
     <div className="min-h-screen bg-embler-dark flex flex-col">
@@ -125,10 +96,23 @@ const ClientChat: React.FC = () => {
             </div>
           </div>
           
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-gray-400 flex items-center gap-3">
             <span className="bg-embler-yellow/20 text-embler-yellow px-2 py-1 rounded-full text-xs font-medium border border-embler-yellow/30">
-              Simulación Cliente
+              Chatbot Real - Repuestos Automotrices
             </span>
+            {collectionProgress.progressPercentage > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-16 h-2 bg-embler-dark rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-embler-yellow transition-all duration-300"
+                    style={{ width: `${collectionProgress.progressPercentage}%` }}
+                  />
+                </div>
+                <span className="text-xs text-embler-yellow font-medium">
+                  {collectionProgress.progressPercentage}%
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -162,7 +146,7 @@ const ClientChat: React.FC = () => {
           ))}
           
           {/* Typing Indicator */}
-          {isTyping && (
+          {isThinking && (
             <div className="flex justify-start">
               <div className="bg-embler-dark text-gray-200 px-4 py-2 rounded-lg">
                 <div className="flex items-center gap-1">
@@ -171,7 +155,7 @@ const ClientChat: React.FC = () => {
                     <div className="w-2 h-2 bg-embler-yellow rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                     <div className="w-2 h-2 bg-embler-yellow rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
-                  <span className="text-xs text-gray-400 ml-2">escribiendo...</span>
+                  <span className="text-xs text-gray-400 ml-2">{MESSAGES.SYSTEM.PROCESSING.toLowerCase()}</span>
                 </div>
               </div>
             </div>
@@ -187,7 +171,7 @@ const ClientChat: React.FC = () => {
           {/* Quick Responses */}
           {messages.length <= 3 && (
             <div className="p-4 border-b border-embler-accent bg-embler-dark/30">
-              <p className="text-sm text-gray-300 mb-2">Respuestas rápidas:</p>
+              <p className="text-sm text-gray-300 mb-2">{MESSAGES.CLIENT_CHAT.QUICK_RESPONSES_LABEL}</p>
               <div className="flex flex-wrap gap-2">
                 {quickResponses.map((response, index) => (
                   <button
@@ -211,11 +195,11 @@ const ClientChat: React.FC = () => {
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Escribe tu mensaje..."
                 className="flex-1 px-4 py-2 bg-embler-dark border border-embler-accent rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-embler-yellow focus:border-transparent"
-                disabled={isTyping}
+                disabled={isThinking}
               />
               <button
                 type="submit"
-                disabled={!inputValue.trim() || isTyping}
+                disabled={!inputValue.trim() || isThinking}
                 className="px-6 py-2 bg-embler-yellow text-embler-dark font-medium rounded-lg hover:bg-embler-yellow/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,10 +214,91 @@ const ClientChat: React.FC = () => {
       {/* Espaciador para el footer fijo */}
       <div className="h-32"></div>
 
+      {/* Debug Panel - Solo en desarrollo */}
+      {import.meta.env.MODE === 'development' && (
+        <div className="p-4 bg-embler-dark border-t border-embler-accent">
+          <div className="max-w-4xl mx-auto">
+            <details className="group">
+              <summary className="cursor-pointer text-sm text-gray-400 hover:text-embler-yellow transition-colors flex items-center gap-2">
+                <span>🔧 Panel de Debug del Chatbot</span>
+                <svg className="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              
+              <div className="mt-3 p-3 bg-embler-gray rounded-lg border border-embler-accent">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  {/* Progreso de recopilación */}
+                  <div>
+                    <h4 className="text-embler-yellow font-medium mb-2">Progreso ({collectionProgress.progressPercentage}%)</h4>
+                    <div className="space-y-1">
+                      <div className="text-green-400">
+                        ✅ Completados: {collectionProgress.completedFields.length}
+                      </div>
+                      <div className="text-red-400">
+                        ❌ Faltantes: {collectionProgress.missingFields.length}
+                      </div>
+                      <div className="text-gray-400">
+                        📊 Estado: {collectionProgress.status}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Información del cliente */}
+                  <div>
+                    <h4 className="text-embler-yellow font-medium mb-2">Datos del Cliente</h4>
+                    <div className="space-y-1 text-gray-300">
+                      <div>👤 Nombre: {clientInfo.nombre || 'Sin datos'}</div>
+                      <div>🔧 Pieza: {clientInfo.piezaNecesaria || 'Sin datos'}</div>
+                      {clientInfo.vehiculo && (
+                        <>
+                          <div>🚗 Marca: {clientInfo.vehiculo.marca || 'Sin datos'}</div>
+                          <div>🏷️ Modelo: {clientInfo.vehiculo.modelo || 'Sin datos'}</div>
+                          <div>📅 Año: {clientInfo.vehiculo.año || 'Sin datos'}</div>
+                          <div>⚡ Motor: {clientInfo.vehiculo.litraje || 'Sin datos'}</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Estado del sistema */}
+                  <div>
+                    <h4 className="text-embler-yellow font-medium mb-2">Estado del Sistema</h4>
+                    <div className="space-y-1">
+                      <div className={`${isThinking ? 'text-embler-yellow' : 'text-green-400'}`}>
+                        🤖 {isThinking ? MESSAGES.SYSTEM.PROCESSING : MESSAGES.SYSTEM.READY}
+                      </div>
+                      <div className={`${error ? 'text-red-400' : 'text-green-400'}`}>
+                        🔌 {error ? MESSAGES.SYSTEM.ERROR : MESSAGES.SYSTEM.CONNECTED}
+                      </div>
+                      <div className="text-gray-400">
+                        💬 Mensajes: {messages.length}
+                      </div>
+                      <button 
+                        onClick={resetConversation}
+                        className="mt-2 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors"
+                      >
+                        {MESSAGES.SYSTEM.RESET_CHAT}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="mt-3 p-2 bg-red-900/30 border border-red-500/30 rounded text-red-400 text-xs">
+                    ⚠️ Error: {error}
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="p-4 text-center bg-embler-dark border-t border-embler-accent">
         <p className="text-xs text-gray-400">
-          Esta es una simulación del chatbot para desarrollo • No es la experiencia real del cliente
+          {MESSAGES.CLIENT_CHAT.FOOTER_TEXT}
         </p>
       </div>
     </div>

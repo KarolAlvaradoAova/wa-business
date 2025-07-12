@@ -47,7 +47,7 @@ Las respuestas automáticas del chatbot deben distinguir entre:
 - Escalada a humano
 
 Finalmente, asegurarse que los agentes no respondan fuera de la ventana de 24h sin usar plantillas aprobadas.
-
+ñ
 ---
 
 ## NOTA IMPORTANTE PARA DESARROLLO EN WINDOWS POWERSHELL

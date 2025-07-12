@@ -7,6 +7,7 @@ import { ToastNotifications } from "./components/NotificationCenter";
 import Login from "./pages/Login";
 import Chats from "./pages/Chats";
 import ClientChat from "./pages/ClientChat";
+import WhatsAppTest from "./pages/WhatsAppTest";
 import './App.css';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/client-chat" element={<ClientChat />} />
+            <Route path="/whatsapp-test" element={<WhatsAppTest />} />
             <Route 
               path="/chats" 
               element={
